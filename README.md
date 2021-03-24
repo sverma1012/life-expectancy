@@ -10,3 +10,7 @@ This project focusses on the predicting the life expectancy of a nation based on
 ## Tools Useed
 * R Studio
 * R Markdown
+
+## About the Dataset
+
+This dataset was obtained from Kaggle. 
