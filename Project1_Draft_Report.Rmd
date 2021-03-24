@@ -1,0 +1,621 @@
+---
+title: 'Life Expectancy Data Analysis'
+author: "Jorania F. Alves and Sneha Verma"
+date: "12/18/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Note: Before running the data, change the location of the data
+
+This dataset describes the life expectancy of multiple countries over a period of 15 years. It provides various health and economic factors regarding the country for that year, such as BMI (Body Mass Index), GDP (Gross Domestic Product), Hepatits B immunization coverage, etc. 
+This research project will focus on the central question:
+
+**Do health factors influence the life expectancy of a country?**
+
+The researchers will look at the following predictor variables:
+
+Adult Mortality: Adult mortality rates (probability of dying between 15 and 60 years per 1000 population).
+
+infant deaths: Number of infant deaths per 1000 population.
+
+Alcohol: recorded per capita (15+ years) consumption in litres of pure alochol.
+
+Hepatitis B: Hepatitis B immunization coverage among one-year olds in percentage.
+
+Measles: number of reported cases per 1000 population.
+
+BMI: Average body mass index of entire population (the units were not provided, hence, the researchers will use the most common unit for describing BMI: kilograms per meter squared).
+
+Polio: polio immunization coverage among one-year olds in percentage.
+
+Diphtheria: Diphtheria tetanus toxoid and pertussis immunization coverage among one-year olds in percentage.
+
+thinness 1-19 years: prevalance of thinness among children and adolescents between the ages 10 and 19 in percentage.
+
+thinness 5-9 years: prevalance of thinness among children and adolescents between the ages 5 and 9 in percentage.
+
+Predictor variable: Life expectancy in age (years)
+
+It should be noted that since the units of are complex, interpretations of parameters will be mostly qualitative to indicate the direction of the influence. 
+
+## Import the dataset
+
+```{r}
+lifeExpectancy = read.csv('/Users/sneha_verma/Documents/MATH 327/Project1/Data/Life Expectancy Data.csv')
+
+# Remove any unnecessary variables:
+life_expectancy0 = subset(lifeExpectancy, select = -c(Country, Year, Status, percentage.expenditure, under.five.deaths, Total.expenditure, HIV.AIDS, GDP, Population, Income.composition.of.resources, Schooling))
+
+# make dataset of complete observations for all columns.
+life_expectancy = life_expectancy0[complete.cases(life_expectancy0), ]
+
+# Rename columns for convenience:
+colnames(life_expectancy) = c("lifeExpectancy", "adult_mortality", "infant_deaths", "alcohol", "hepatitisB", "measles", "bmi", "polio", "diphtheria", "thin10to19", "thin5to9")
+```
+
+# Exploratory analysis
+
+## adult_mortality
+```{r}
+summary(life_expectancy$adult_mortality)
+```
+This shows that the minimum value of adult mortality is not 0, allowing us to make a log transformation, if necessary.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$adult_mortality, xlab = 'Adult Mortality')
+boxplot(life_expectancy$adult_mortality, xlab = 'Adult Mortality')
+```
+
+The distribution of adult mortality is clearly right-skewed. Let us try a log transformation to account for the skewness.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(log(life_expectancy$adult_mortality), xlab = 'Log of Adult Mortality')
+boxplot(log(life_expectancy$adult_mortality), xlab = 'Log of Adult Mortality')
+```
+
+The log transformation overadjusts the skewness making the variable left-skewed. Thus, let us try a square-root transformation
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(sqrt(life_expectancy$adult_mortality), xlab = 'Square root of Adult Mortality')
+boxplot(sqrt(life_expectancy$adult_mortality), xlab = 'Square root of Adult Mortality')
+```
+
+The distribution of sqrt(adult-mortality) is more symmetric.
+
+### infant_deaths
+```{r}
+summary(life_expectancy$infant_deaths)
+```
+The minimum value of infant deaths is 0, indicating that a log transformation, if necessary, will not be possible since log(0) is undefined.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$infant_deaths, xlab = 'Number of infant deaths per 1000')
+boxplot(life_expectancy$infant_deaths, xlab = 'Number of infant deaths per 1000')
+```
+
+The distribution of the number of infant deaths per 1000 population is clearly right-skewed. Since this variable has the value zero, let us convert it into a categorical variable where each "bin" is set according to the quartiles found from the summary() function.
+
+```{r}
+# Create a new variable where all values are "Q1.zero"
+life_expectancy$infant_deaths_cat = "Q1.zero"
+
+# Change the new variable to "Q2" for the rows not in category 1
+life_expectancy$infant_deaths_cat[life_expectancy$infant_deaths > 0] = "Q2"
+
+# Change the new variable to "Q3" for the rows not in category 1 or 2
+life_expectancy$infant_deaths_cat[life_expectancy$infant_deaths > 3.0] = "Q3"
+
+# Change the new variable to "Q4" for the rows not in category 1, 2, or 3
+life_expectancy$infant_deaths_cat[life_expectancy$infant_deaths > 22.0] = "Q4"
+
+# visualize the results
+boxplot(life_expectancy$infant_deaths ~ life_expectancy$infant_deaths_cat)
+
+# Count number of cases in each category
+table(life_expectancy$infant_deaths_cat)
+```
+
+### alcohol
+```{r}
+summary(life_expectancy$alcohol)
+```
+The minimum value of alcohol comsumption is 0.01, indicating that a log transformation, if necessary, will be possible.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$alcohol, xlab = 'Alcohol consumption')
+boxplot(life_expectancy$alcohol, xlab = 'Alcohol consumption')
+
+```
+
+The distribution of alcohol consumption is clearly right-skewed. Let us try a log transformation to account for the skewness.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(log(life_expectancy$alcohol), xlab = 'Log of alcohol consumption')
+boxplot(log(life_expectancy$alcohol), xlab = 'Log of alcohol consumption')
+```
+
+The log transformation overadjusts the skewness making the variable left-skewed. Thus, let us try a square-root transformation
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(sqrt(life_expectancy$alcohol), xlab = 'Log of alcohol consumption')
+boxplot(sqrt(life_expectancy$alcohol), xlab = 'Log of alcohol consumption')
+```
+
+The distribution of sqrt(alcohol) is more symmetric.
+
+### hepatitsB
+```{r}
+summary(life_expectancy$hepatitisB)
+```
+The minimum value of the percentage of one-year olds with HepatitisB immunization coverage is 1%.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$hepatitisB, xlab = 'Hepatitis B immunization coverage among one-year olds in percent')
+boxplot(life_expectancy$hepatitisB, xlab = 'Hepatitis B immunization coverage among one-year olds in percent')
+```
+
+The distribution of hepatits B among 1-year old in percent is clearly left-skewed. However, since the variable is in the units of percentage, let us leave the variable untouched and investigate its effects in the model.
+
+### measles
+```{r}
+summary(life_expectancy$measles)
+```
+The minimum value of the number of reported cases of measles per 1000 is 0, indicating that a log transformation, if necessary, will not be possible since log(0) is undefined.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$measles, xlab = 'Number of reported cases per 1000')
+boxplot(life_expectancy$measles, xlab = 'Number of reported cases per 1000')
+
+```
+
+The distribution of the number of infant deaths per 1000 population is clearly right-skewed. Since this variable has the value zero, let us convert it into a categorical variable where each "bin" is set according to the quartiles found from the summary() function.
+
+```{r}
+# Create a new variable where all values are "Q1.zero"
+life_expectancy$measles_cat = "Q1.zero"
+
+# Change the new variable to "Q2" for the rows not in category 1
+life_expectancy$measles_cat[life_expectancy$measles > 0] = "Q2"
+
+# Change the new variable to "Q3" for the rows not in category 1 or 2
+life_expectancy$measles_cat[life_expectancy$measles > 17.0] = "Q3"
+
+# Change the new variable to "Q4" for the rows not in category 1, 2, or 3
+life_expectancy$measles_cat[life_expectancy$measles > 360.2] = "Q4"
+
+# visualize the results
+boxplot(life_expectancy$measles ~ life_expectancy$measles_cat)
+
+# Count number of cases in each category
+table(life_expectancy$measles_cat)
+```
+
+### bmi
+```{r}
+summary(life_expectancy$bmi)
+```
+The minimum value of body mass index is 1.40 kg/m^2, indicating that a log transformation, if necessary, will be possible.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$bmi, xlab = 'Average body mass index of population')
+boxplot(life_expectancy$bmi, xlab = 'Average body mass index of population')
+
+```
+
+The distribution of average bmi across poopulations is bi-modal, which is acceptable for this multiple linear regression analysis. 
+
+### polio
+```{r}
+summary(life_expectancy$polio)
+```
+The minimum value of one-year olds with polio immunization coverage is 3%, indicating that a log transformation, if necessary, will be possible.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$polio, xlab = 'Polio immunization coverage among 1-year olds in percentage')
+boxplot(life_expectancy$polio, xlab = 'Polio immunization coverage among 1-year olds in percentage')
+
+```
+
+The distribution of polio among 1 year olds cases is clearly left-skewed. However, since the variable is in the units of percentage, let us leave the variable untouched and investigate its effects in the model.
+
+
+### diphtheria
+```{r}
+summary(life_expectancy$diphtheria)
+```
+
+The minimum value of one-year olds with diphtheria immunization coverage is 2%, indicating that a log transformation, if necessary, will be possible.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$diphtheria, xlab = 'Diphtheria tetanus toxoid and pertussis immunization coverage among 1-year olds  in percentage')
+boxplot(life_expectancy$diphtheria, xlab = 'Diphtheria tetanus toxoid and pertussis immunization coverage among 1-year olds in percentage')
+
+```
+
+The distribution of diphtheria cases cases is clearly left-skewed. However, since the variable is in the units of percentage, let us leave the variable untouched and investigate its effects in the model.
+
+
+### thin10to19
+```{r}
+summary(life_expectancy$thin10to19)
+```
+The minimum value of prevalence of thinnes among 10 to 19 year olds is 0.1%, indicating that a log transformation, if necessary, will be possible.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$thin10to19, xlab = 'Prevalence of thinness among 10 to 19 year olds')
+boxplot(life_expectancy$thin10to19, xlab = 'Prevalence of thinness among 10 to 19 year olds')
+```
+
+The distribution of the prevalence of thinness among 10 to 19 year olds is clearly right-skewed. Let us try a log transformation to account for the skewness.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(log(life_expectancy$thin10to19), xlab = 'Log of prevalence of thinness among 10 to 19 year olds')
+boxplot(log(life_expectancy$thin10to19), xlab = 'Log of prevalence of thinness among 10 to 19 year olds')
+```
+
+The log(thin10to19) is more symmetric.
+
+### thin5to9
+```{r}
+summary(life_expectancy$thin5to9)
+```
+The minimum value of prevalence of thinnes among 5 to 9 year olds is 0.1%, indicating that a log transformation, if necessary, will be possible.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$thin5to9, xlab = 'Prevalence of thinness among 5 to 9 year olds')
+boxplot(life_expectancy$thin5to9, xlab = 'Prevalence of thinness among 5 to 9 year olds')
+
+```
+
+The distribution of the prevalence of thinness among 5 to 9 year olds is clearly right-skewed. Let us try a log transformation to account for the skewness.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(log(life_expectancy$thin5to9), xlab = 'Log of prevalence of thinness among 5 to 9 year olds')
+boxplot(log(life_expectancy$thin5to9), xlab = 'Log of prevalence of thinness among 5 to 9 year olds')
+```
+
+The distribution of log(thin5to9) is more symmetric.
+
+## Scatterplot Matrix and Correlations
+
+```{r}
+pairs(life_expectancy[, 1:11])
+```
+
+Through the scatterplot matrix, it is clear that the relationship between the response variable (life expectancy) and the predictor variables is unclear because of the large number of the observations and the skewness in each variable (which has not been accounted for in this matrix).
+
+Let us now look at pairwise correlations:
+
+```{r}
+corr = cor(life_expectancy[, 1:11], use = 'complete.obs')
+round(corr, 2)
+```
+
+Observing the correlation matrix, it can be concluded that most predictor variables are not correlated to each other which shows that this dataset does not display multicollinearity. However, the variables 'thin5to9' and 'thin10to19' have a high correlation of 0.94 indicating the presence of multicollinearity. Adult mortality, followed by body mass index, are the most correlated with the response varibale, life expectancy.
+
+Looking at the skewness and correlation, the variables indicating the percent of one-year olds with measles immunization coverage and the number of infant deaths should be categorical because they have large skewness with zero as values. Other variables that are left-skewed and have units in percentage have been left untouched to observe its significance in predicting life expectancy of a country. 
+
+To deal with the high correlation between variables thin5to9 and thin10to19, let us create a third variable with the average of the first two:
+
+```{r}
+thin = c('thin5to9', 'thin10to19')
+life_expectancy$thin_avg = rowMeans(life_expectancy[thin])
+```
+
+We will use the thin_avg variable in our first-order model.
+
+## Simple Linear Regression
+
+Let us start with a simple linear regression model of the response variable and the predictor variable with the highest correlation with life expectancy, adult mortality:
+
+```{r fig.height=5, fig.width=8.5}
+plot(data = life_expectancy, lifeExpectancy ~ adult_mortality)
+simpleFit = lm(data = life_expectancy, lifeExpectancy ~ adult_mortality)
+summary(simpleFit)
+```
+
+Looking at this plot, two clusters of points are visible indicating the possibility of errors in data entry or some unnatural events that created a large range of values of life expectancy for low adult mortality. We can explore the clusters with the following code, however, since multiple variables are displaying clusters, we will leave the variables untouched and continue with the regression analysis with the originally transformed variables.
+
+```{r}
+# # create cluster 1
+# life_expectancy$cluster1 = with(life_expectancy, ifelse((lifeExpectancy < 70 & adult_mortality < 100) | (lifeExpectancy >= 70 & adult_mortality < 45), 1, 2))
+# plot(lifeExpectancy ~ adult_mortality, data = life_expectancy, col = cluster1)
+# life_expectancy$adult_mort2 = ifelse(life_expectancy$cluster1 == 1, 10, 1) * life_expectancy$adult_mortality
+# plot(lifeExpectancy ~ adult_mort2, data = life_expectancy, col = cluster1)
+# 
+# # crate cluster 2
+# life_expectancy$cluster2 = with(life_expectancy, ifelse((lifeExpectancy < 90 - 0.3 * adult_mort2), 3, 4))
+# plot(lifeExpectancy ~ adult_mort2, data = life_expectancy, col = cluster2)
+# abline(90, -0.3)
+# life_expectancy$adult_mort3 = ifelse(life_expectancy$cluster2 == 3, 10, 1) * life_expectancy$adult_mort2
+# plot(lifeExpectancy ~ adult_mort3, data = life_expectancy, col = cluster2)
+```
+
+Let us have a second look at the distribution of adult mortality:
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow=c(1,2))
+hist(life_expectancy$adult_mortality)
+boxplot(life_expectancy$adult_mortality)
+```
+
+Since the variable is right-skewed, we transformed the variable with a square-root transformation. Let us use the transformed variable to fit a model:
+
+```{r fig.height=5, fig.width=8.5}
+plot(data = life_expectancy, lifeExpectancy ~ sqrt(adult_mortality))
+hist(sqrt(life_expectancy$adult_mortality))
+boxplot(sqrt(life_expectancy$adult_mortality))
+```
+
+The intial plot shows that there are three clusters in adult_mortality, not two (as we thought above).
+The sqrt(adult_mortality) distribution is more symmetric.
+
+```{r}
+simpleFit_sqrt = lm(data = life_expectancy, lifeExpectancy ~ sqrt(adult_mortality))
+summary(simpleFit_sqrt)
+```
+
+Looking at the reggression results, one can observe that intercept is 82.6, indicating that when the square-root of adult mortality is 0, the life expectancy is 82.6 years.
+The slope is -1.08 indicating that when the square root of adult mortality increases by 1 square-root percentage per 1000 population, the life expectancy decreases by 1.08 years.
+
+Let us now look at the confidence intervals and the residual plots:
+
+```{r}
+confint(simpleFit_sqrt)
+```
+
+The confidence interval of the slope is -1.14 to -1.02; this means that the mean life expectancy decreases between 1.02 to 1.14 years with a 1 square-root percent per 1000 increase in adult mortality.
+
+```{r fig.height=3.5, fig.width=7}
+par (mfrow = c(1,2))
+plot (simpleFit_sqrt, which=1:2)
+```
+
+The residual plot shows non-linearity and non-constant variance. There are two clear clusters of points in the residual v/s fitted plot which were also reflected in the simple linear regression plot. There are more points beneath the 0.0 line and the red trendline shows curvature, indicating non-linearity.
+The quantile points show a linear trend indicating normally-distributed residuals. However, there is some deviation from the linear pattern at the tails indicating long-tailed residuals, but that does not indicate major deviation from the linear trend. Hence, the residuals follow the normal distribution condition.
+
+
+## First Order Model
+
+Next, we fit a first-order linear model will all nine predictors, with the transformations decided upon previously:
+
+```{r}
+fit1 = lm(data = life_expectancy, lifeExpectancy ~ sqrt(adult_mortality) + infant_deaths_cat + hepatitisB + sqrt(alcohol) + measles_cat + bmi + polio + diphtheria + thin_avg)
+summary(fit1)
+```
+
+From the regression analysis, the following variables are significant with a 0.001 significance level:
+the intercept, sqrt(adult_mort3), infant_deaths_cat, sqrt(alcohol), measles_cat, bmi, polio, and diphtheria. HepatitisB is not significant.
+The (adjusted) R-squared is 60.6% which implies that this model explains 60.6% of the variation in the response variable. The residual standard error is 5.317 years. 
+
+### Interpretation of parameters:
+
+NOTE: Due to the complexity and unclarity of the units, while we will be interpreting the parameter effects with units, we will also interpret it in a qualitative manner by describing the direction of effect.
+
+The intercept 70.85 is the estimated mean life expectancy in age (years), when all the other predictors are 0.
+
+When the square root of the probability of dying between 15 and 60 years per 1000 population increases by 1 square root percent, the life expectancy decreases by 0.7188 years. Hence, when adult mortality increases, the life expectancy decreases, while holding other predictors as constant. 
+
+If the number of infant deaths are greater than 0 and less than 3 life expectancy will decrease by 0.7815 years, while holding other predictors constant.
+If the number of infant deaths are greater than 3 and less than 22 life expectancy will decrease by 2.530 years, while holding other predictors constant.
+If the number of infant deaths are greater than 22 life expectancy will decrease by 5.722 years, while holding other predictors constant.
+In overall, it can be seen as the number of infant deaths increase, the life expectancy keeps decreasing.
+
+If hepatitis B immunization coverage among one-year olds increases by 1%, life expectancy will decrease by 1.078e-05 years, while holding other predictors constant.
+
+As alcohol consumption increases by the square root of one square root litre of pure alcohol, the life expectancy increases by 0.735 years, while holding other predictors as constant.
+
+If the number of reported measles cases increases by 0 to 17 cases, the life expectancy will increase by 0.1456 years, while holding other predictors as constant.
+If the number of reported measles cases increases by 17 to 360.2 cases, the life expectancy will increase by 0.7102 years, while holding other predictors as constant.
+If the number of reported measles cases increases by more than 360.2 cases, the life expectancy will increase by 1.523 years, while holding other predictors as constant.
+In general, it appears that as the number of measles cases increases, the life expectancy increases.
+
+An increase in bmi by 1 kg/m^2 will increase life expectancy by 0.0726 years, while keeping other predictors constant.
+
+An increase in polio immunization coverage among 1 year old by 1% will increase life expectancy by 0.02260 years, keeping other predictors constant.
+
+An increase in diphtheria immunization coverage among 1 year old by 1%, will increase life expectancy by 0.0463, keeping other predictors constant.
+
+An increase in the average thinness among 5 to 19 year olds will decrease life expectancy by 0.2038 years, while keeping other predictors constant.
+
+
+```{r}
+anova(fit1)
+```
+
+The analysis of variance table (ANOVA table) suggests that all variables except the categorical measles variable are significant predictors.
+
+Let us check the variance inflation factor to look for correlation among variables:
+```{r}
+library(car)
+vif(fit1)
+```
+
+The VIF values of the variables (including the categorical variables) show that none of the variables in the model are correlated with each other, since all values are below 5. 
+
+### Residual Analysis
+
+```{r fig.height=3.5, fig.width=7}
+par (mfrow = c(1,2))
+plot (fit1, which=1:2)
+```
+
+The residual v/s fitted value plot is useful for assessing linearity and constant variance conditions of a simple linear model. The residuals are scattered across the plot with high residuals and there appears to bee some curvature in the trendline, however, there does not appear to be an extreme non-linear trend in the residuals. Hence, the residuals are consistent with the linearity condition. Further, the residuals appear to have constant variance with points being scattered above and below the 0.0 line. 
+The normal quantile plot is a scatterplot that displays the observed data v/s the values that would be expected from a normal sample of the same size. In this quantile plot, there does not appear to be any major deviation from a straight line. However, there are some left-skewed residuals but the trend is largely linear indicating that the deviation might be a small variation that can be ignored. 
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow = c(1,2))
+boxplot(fit1$residuals, ylab = 'Fit1 Residuals')
+plot(lifeExpectancy~fit1$fitted, main = "Actual v/s Fitted", ylab = "Life Expectancy", data = life_expectancy)
+abline(0,1, col = "red")
+```
+
+The box plot shows skewness in either ends of the residuals indicating some deviaation from a normal pattern.
+The Actual v/s Fitted plot shows a moderate linear trend.
+
+
+## Box-Cox Analysis
+
+```{r}
+library(MASS)
+boxcox(fit1)
+```
+
+The box-cox analysis suggests a squared power transformation, with lambda = 2, on the response variable. 
+
+```{r}
+fit2 = lm(data = life_expectancy, lifeExpectancy^2 ~ sqrt(adult_mortality) + infant_deaths_cat + hepatitisB + sqrt(alcohol) + measles_cat + bmi + polio + diphtheria + thin_avg)
+summary(fit2)
+```
+
+From the regression analysis, all variables, except hepatitisB, are significant at the 0.001 level. 
+The (adjusted) R-squared is 61.04% which means that this model explains 61.04% of the variation in the response model. The residual standard error is 707.8 squared years.
+
+```{r}
+anova(fit2)
+```
+
+The analysis of variance table (ANOVA table) suggests that all variables are significant at the 0.001 level, except the measles_cat variable which is significant at the 0.01 level (which is higher than the first fitted model).
+
+Let us check the variance inflation factor to check for correlation among variables:
+```{r}
+library(car)
+vif(fit2)
+```
+
+The VIF values of the variables (including the categorical variables) show that none of the variables in the model are correlated with each other, since all values are below 5. 
+
+## Residual Analysis
+
+```{r fig.height=3.5, fig.width=7}
+par (mfrow = c(1,2))
+plot (fit2, which=1:2)
+```
+
+The residual v/s fitted value plot is useful for assessing linearity and constant variance conditions of a simple linear model. The residuals are scattered across the plot with high residuals at the bottom of the plot, however, the curvature is less than the previous model hence, there does not appear to be an extreme non-linear trend in the residuals. Thus, the residuals are consistent with the linearity condition. Further, there does not appear to be a major deviation from constant variance with points being scattered above and below the 0.0 line. 
+The normal quantile plot is a scatterplot that displays the observed data v/s the values that would be expected from a normal sample of the same size. In this quantile plot, there does not appear to be any major deviation from a straight line. While there are no right-skewed residuals, there are some left-skewed residuals but the trend is largely linear indicating that the deviation might be a small variation that can be ignored. 
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow = c(1,2))
+boxplot(fit2$residuals, ylab = 'Fit2 Residuals')
+plot(lifeExpectancy~fit2$fitted, main = "Actual v/s Fitted", ylab = "Life Expectancy", data = life_expectancy)
+abline(0,1, col = "red")
+```
+
+The box plot shows slight skewness at the right end with large skewness on the left end, which was shown in the quantile plot, indicating some deviation from a normal pattern.
+The Actual v/s Fitted plot shows a stronger linear trend than the originally-fitted model.
+
+
+## Backward Elimination
+
+Looking at the regression results of the second fitted model, it can be concluded that Hepatitis B is not a significant predictor. Let us remove the variable and refit the model:
+
+```{r}
+fit3 = lm(data = life_expectancy, lifeExpectancy^2 ~ sqrt(adult_mortality) + infant_deaths_cat + sqrt(alcohol) + measles_cat + bmi + polio + diphtheria + thin_avg)
+summary(fit3)
+```
+
+From the regression analysis, all variables are significant with a 0.001 significance level.
+The (adjusted) R-squared is 61.05% which implies that this model explains 61.05% of the variation in the response variable. This is not significantly larger than the R-squared obtained before removing hepatitsB.
+The residual standard error is 707.6. 
+
+### Interpretation of parameters:
+
+NOTE: Due to the complexity and unclarity of the units, we will be interpreting the parameter effects in a qualitative and quantitative manner by focussing on the direction of effect.
+
+The intercept 5047 is the estimated mean life expectancy in years squared, when all the other predictors are 0.
+
+When the square root of the probability of dying between 15 and 60 years per 1000 population increases by 1 square root percent, the life expectancy decreases by 94.79 years squared. Hence, when adult mortality increases, the life expectancy decreases, while holding other predictors constant. 
+
+If the number of infant deaths are greater than 0 and less than 3, life expectancy will decrease by 95.0049 years squared, while holding other predictors constant.
+If the number of infant deaths are greater than 3 and less than 22, life expectancy will decrease by 375.48 years squared, while holding other predictors as constant.
+If the number of infant deaths are greater than 22, life expectancy will decrease by 751.8 years squared, while holding other predictors constant.
+In overall, it can be seen as the number of infant deaths increase, the life expectancy will decrease.
+
+As alcohol consumption increases by one square root litre of pure alcohol, the life expectancy increases by 120.22 squared years, while holding other predictors constant. Hence, when alcohol consumption increases, so does life expectancy.
+
+If the number of reported measles cases increases by 0 to 17 cases, the life expectancy will increase by 48.02 squared years, while holding other predictors as constant.
+If the number of reported measles cases increases by 17 to 360.2 cases, the life expectancy will increase by 148.87 squared years, while holding other predictors as constant.
+If the number of reported measles cases increases by more than 360.2 cases, the life expectancy will increase by 237.67 squared years, while holding other predictors as constant.
+In general, it appears that as the number of measles cases increases, the life expectancy increases.
+
+An increase in bmi by 1 kg/m^2 will increase life expectancy by 9.41 squared years, while keeping other predictors constant. Hence, as bmi increases, the life expectancy also increases.
+
+An increase in polio immunization coverage among 1 year old by 1% will increase life expectancy by 2.97 squared years, keeping other predictors constant.
+
+An increase in diphtheria immunization coverage among 1 year old by 1%, will increase life expectancy by 6.08 squared years, keeping other predictors constant.
+
+An increase in the average thinness among 5 to 19 year olds will decrease life expectancy by -30.33 squared years, while keeping other predictors the constant.
+
+The surprising parameters are alcohol and measles because as alcohol comsumption increases and measle cases increases, the life expectancy increases instead of decreasing which is what the researchers expected.
+
+
+```{r}
+anova(fit3)
+```
+
+The analysis of variance table (ANOVA table) suggests that all variables except the categorical measles variable are significant predictors at the 0.001 level.
+
+Let us check the variance inflation factor to check for correlation among variables:
+
+```{r}
+library(car)
+vif(fit3)
+```
+
+The VIF values of the variables (including the categorical variables) show that none of the variables in the model are correlated with each other, since all values are below 5. 
+
+### Residual Analysis
+
+```{r fig.height=3.5, fig.width=7}
+par (mfrow = c(1,2))
+plot (fit3, which=1:2)
+```
+
+The residual v/s fitted value plot is useful for assessing linearity and constant variance conditions of a simple linear model. The residuals are scattered across the plot with high residuals at the bottom of the plot, however, there does not appear to be an extreme non-linear trend in the residuals. Hence, the residuals are consistent with the linearity condition. Further, there does not appear to be a major deviation from constant variance with points being scattered above and below the 0.0 line. 
+The normal quantile plot is a scatterplot that displays the observed data v/s the values that would be expected from a normal sample of the same size. In this quantile plot, there does not appear to be any major deviation from a straight line. While there are no right-skewed residuals, there are some left-skewed residuals but the trend is largely linear indicating that the deviation might be a small variation that can be ignored. 
+
+These plots are extremely similar to the plots produced by fit2 indicating that there has not been a large change by the removal of hepatitsB.
+
+```{r fig.height=5, fig.width=8.5}
+par(mfrow = c(1,2))
+boxplot(fit3$residuals, ylab = 'Fit3 Residuals')
+plot(lifeExpectancy~fit3$fitted, main = "Actual v/s Fitted", ylab = "Life Expectancy", data = life_expectancy)
+abline(0,1, col = "red")
+```
+
+The box plot shows slight skewness at the right end with large skewness on the left end, which was shown in the quantile plot, indicating some deviation from a normal pattern.
+The Actual v/s Fitted plot shows a similar linear trend as the fit2 model.
+
+
+
+
+
+
+
+
+
+
+
+
+
