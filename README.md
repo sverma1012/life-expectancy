@@ -3,7 +3,7 @@
 # Life Expectancy Based on Health Factors
 
 This is a project completed for an Appled Statistics course. It focusses on the predicting the average life expectancy within a nation based on various health features. My partner and I used R to clean, analyze, and visualize the data. We used regression and transformations to anaylze the data and predict the life expectancy from given health factors.
-A detailed explanation of the steps taken in this proejct is provided below.
+A detailed explanation of the steps taken in this project is provided below.
 
 ------------------------------------
 
